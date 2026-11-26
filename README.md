@@ -7,7 +7,7 @@ Requer Node 26. O `flake.nix` fornece o Node e o Corepack: rode `direnv allow` u
 ```sh
 corepack npm install
 node --run check
-node --run start
+node --run start   # demonstração com dados de exemplo
 ```
 
 Contexto, arquitetura e convenções estão no [AGENTS.md](AGENTS.md).

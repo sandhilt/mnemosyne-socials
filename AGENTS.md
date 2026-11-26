@@ -8,25 +8,31 @@ Gerenciador de links sociais. Duas pessoas trocam muitos reels e vídeos por Wha
 
 O projeto recebe esses links e guarda em SQLite o que cada pessoa quer ver, o que já viu e quando viu.
 
-Estado atual: só a casca. Não há funcionalidade de links, tabela nem migração.
+Estado atual: entidades e casos de uso funcionam sobre adapters de mentira (repositório em memória e fonte de exemplo). `node --run start` roda uma demonstração. Ainda não há repositório SQLite, tabela, migração nem entrada real de links.
 
-### Vocabulário proposto
+### Vocabulário
 
-Revise antes de implementar. Nada disto existe no código ainda.
+- **Link**: um conteúdo único, identificado por uma chave derivada da URL. Guarda os envios e as visualizações.
+- **Pessoa**: quem envia, recebe e vê. No código é o id `PersonId`.
+- **Envio** (`Share`): uma pessoa manda um link a outra, com data, canal e id da mensagem. O par canal e id da mensagem não se repete dentro de um link.
+- **Visualização** (`View`): quando uma pessoa viu um link. Vale a mais antiga.
+- **Pendente**: link enviado a uma pessoa que ainda não o viu. Aparece uma vez, mesmo com vários envios.
 
-- **Link**: um conteúdo único, identificado pela URL normalizada.
-- **Envio**: o ato de uma pessoa mandar um link a outra, com data e canal. Um link pode ter vários envios.
-- **Visualização**: o registro de que uma pessoa viu um link, com data. É por pessoa.
-- **Pendente**: link enviado a alguém que ainda não tem visualização dessa pessoa.
+### Casos de uso
+
+Um arquivo por caso de uso em `src/application/use-cases/`: `register-share`, `mark-viewed`, `list-pending`, `get-link-history` e `import-shares`. As portas estão em `src/application/ports.ts`.
 
 ### Decisões em aberto
 
 Pergunte antes de escolher.
 
-- Como os links chegam (CLI, API HTTP, bot, compartilhamento pelo celular). Confirme o que cada plataforma permite antes de prometer integração.
-- Como reconhecer o mesmo vídeo com URLs diferentes (parâmetros de rastreio, links curtos).
+- Como os links chegam (entrada própria, MCP ou outra). Será um adapter de `ShareSource` ou um chamador de `register-share`. Confirme o que cada plataforma permite antes de prometer integração.
+- Se enviar um link conta como já ter visto. Hoje não conta.
+- Links curtos (`vm.tiktok.com` e similares) não são resolvidos, então não se juntam ao link completo.
+- Mudar uma regra de identidade com dados já gravados exigirá recalcular as chaves.
 - Como identificar cada pessoa.
-- Se reações e comentários entram no primeiro escopo.
+- O que fazer quando uma origem entrega um id de pessoa em branco. Hoje o erro interrompe a importação.
+- Se reações e comentários entram no escopo.
 - Como versionar o esquema do banco.
 
 ## Comandos
@@ -62,7 +68,7 @@ Clean Architecture. As dependências apontam para dentro.
 
 | Camada | Conteúdo | Pode importar |
 | --- | --- | --- |
-| `src/domain` | Entidades, value objects, regras puras | `domain` |
+| `src/domain` | Entidades como tipos `Readonly`, regras puras e erros do domínio | `domain` |
 | `src/application` | Casos de uso e portas (interfaces) | `application`, `domain` |
 | `src/infrastructure` | Adapters: SQLite, configuração, entrada e saída | qualquer camada e `node:*` |
 | `src/main.ts` | Composition root | tudo |
@@ -71,10 +77,15 @@ Clean Architecture. As dependências apontam para dentro.
 
 Padrões em uso:
 
-- **Repository**: a porta fica em `application`, o adapter SQLite em `infrastructure`.
-- **Adapter**: cada rede social ou canal de entrada é um adapter.
+- **Entidades**: um arquivo por conceito, direto em `src/domain/` (`person`, `share`, `view`, `link`), sem subpastas. Cada um tem o tipo `Readonly` e as funções puras com suas regras. Não conhecem casos de uso, portas nem I/O.
+- **Criação validada**: monte valores com `personId` e `createShare`, nunca com um objeto literal em código de produção. O tipo aberto não impede o atalho.
+- **Classe só com motivo**: use quando a linguagem exigir ou quando proteger um estado compensar. Hoje a única é `InvalidShareError`, por causa do `instanceof`.
+- **Aggregate**: `Link` reúne envios e visualizações. As funções devolvem um novo valor.
+- **Casos de uso**: funções-fábrica que recebem as portas, montam os valores do domínio a partir de dados simples e orquestram.
+- **Repository**: a porta `LinkRepository` fica em `application`. O adapter atual é em memória; o de SQLite vem depois.
+- **Adapter**: `ShareSource` é a porta de entrada. Cada origem de links é um adapter. Hoje só existe o mock.
 - **Injeção de dependência**: por argumento de função ou construtor, montada em `main.ts`. Sem container.
-- **Strategy** ou **Chain of Responsibility**: para regras que variam por plataforma. Quando duas regras conflitam numa lista ordenada, vale a primeira.
+- **Chain of Responsibility**: as regras de identidade por plataforma em `src/domain/link-key.ts`. Vale a primeira que responder; para mudar a prioridade, mude a ordem.
 
 Valide dados externos na borda (CLI, ambiente, rede, banco). Dentro do sistema, confie nos tipos.
 
@@ -85,7 +96,7 @@ Valide dados externos na borda (CLI, ambiente, rede, banco). Dentro do sistema, 
 - Só sintaxe TypeScript que pode ser apagada: nada de `enum`, `namespace` com valor, parameter properties ou decorators. Use `import type` para tipos.
 - O Node não verifica tipos. Quem verifica é o `node --run typecheck`.
 - Funções pequenas, nomes que dizem a intenção. Comentário só para um porquê que o código não mostra.
-- Lógica nova vem com teste ao lado do arquivo (`*.test.ts`). Teste comportamento observável, não implementação. Use banco `:memory:` ou diretório temporário.
+- Lógica nova vem com teste ao lado do arquivo (`*.test.ts`). Teste de caso de uso que usa um adapter fica em `test/`. Teste comportamento observável, não implementação. Use banco `:memory:` ou diretório temporário.
 - SQL sempre com parâmetros (`prepare`), nunca por concatenação.
 
 ## Git
