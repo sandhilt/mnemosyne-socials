@@ -12,6 +12,12 @@ export type Link = Readonly<{
   views: ReadonlyMap<PersonId, View>
 }>
 
+export type Resend = Readonly<{
+  share: Share
+  original: Share
+  seenAt: Temporal.Instant | undefined
+}>
+
 export function recordShare(
   current: Link | undefined,
   share: Share,
@@ -48,5 +54,24 @@ export function pendingShare(link: Link, person: PersonId): Share | undefined {
 }
 
 export function sharesOf(link: Link): readonly Share[] {
-  return [...link.shares.values()].sort((a, b) => Temporal.Instant.compare(a.sentAt, b.sentAt))
+  return [...link.shares.values()].sort(compareShares)
+}
+
+function compareText(a: string, b: string): number {
+  if (a === b) return 0
+  return a < b ? -1 : 1
+}
+
+export function compareShares(a: Share, b: Share): number {
+  return Temporal.Instant.compare(a.sentAt, b.sentAt)
+    || compareText(a.channel, b.channel)
+    || compareText(a.messageId, b.messageId)
+    || compareText(a.key, b.key)
+}
+
+export function resendsOf(link: Link): readonly Resend[] {
+  const [original, ...resends] = sharesOf(link)
+  if (!original) return []
+
+  return resends.map((share) => ({ share, original, seenAt: link.views.get(share.to)?.viewedAt }))
 }

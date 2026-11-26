@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { pendingShare, recordShare, recordView, sharesOf } from './link.ts'
+import { pendingShare, recordShare, recordView, resendsOf, sharesOf } from './link.ts'
 import { personId } from './person.ts'
 import { createShare } from './share.ts'
 
@@ -58,4 +58,26 @@ test('changing the sorted history snapshot leaves the link intact', () => {
   const { link } = recordShare(undefined, share)
   Reflect.deleteProperty(sharesOf(link), 0)
   assert.deepEqual(sharesOf(link), [share])
+})
+
+test('resends use the earliest share and show when the recipient saw the link, before or after', () => {
+  const original = createShare({ ...fields, channel: 'messenger', sentAt: earlier })
+  const tied = createShare({ ...fields, messageId: 'example-3', sentAt: earlier, from: to, to: from })
+  const laterMessage = createShare({ ...fields, messageId: 'example-2' })
+  const first = recordShare(undefined, laterMessage).link
+  const viewed = recordView(first, { viewer: to, viewedAt: later })
+  const reciprocalView = recordView(viewed, { viewer: from, viewedAt: later })
+  const recorded = recordShare(recordShare(reciprocalView, share).link, tied).link
+  const link = recordShare(recorded, original).link
+
+  assert.deepEqual(resendsOf(first), [])
+  assert.deepEqual(resendsOf(recordShare(first, original).link), [
+    { share: laterMessage, original, seenAt: undefined },
+  ])
+  assert.deepEqual(sharesOf(link), [original, tied, share, laterMessage])
+  assert.deepEqual(resendsOf(link), [
+    { share: tied, original, seenAt: later },
+    { share, original, seenAt: later },
+    { share: laterMessage, original, seenAt: later },
+  ])
 })
