@@ -10,4 +10,4 @@ npm run check
 npm start
 ```
 
-Contexto, arquitetura e convenções estão no [AGENTS.md](AGENTS.md). Suporte por ferramenta de agente está em [docs/harnesses.md](docs/harnesses.md).
+Contexto, arquitetura e convenções estão no [AGENTS.md](AGENTS.md).

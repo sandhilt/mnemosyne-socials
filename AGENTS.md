@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Fonte única das instruções do projeto, para pessoas e para agentes de qualquer harness. Detalhes de cada ferramenta estão em [docs/harnesses.md](docs/harnesses.md).
+Fonte única das instruções do projeto, para pessoas e para agentes. Não crie arquivos de instrução específicos de uma ferramenta nem cite ferramentas de agente no repositório.
 
 ## Produto
 
