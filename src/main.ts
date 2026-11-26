@@ -1,6 +1,7 @@
 import { createGetLinkHistory } from '#application/use-cases/get-link-history.ts'
 import { createImportShares } from '#application/use-cases/import-shares.ts'
 import { createListPending } from '#application/use-cases/list-pending.ts'
+import { createListResends } from '#application/use-cases/list-resends.ts'
 import { createMarkViewed } from '#application/use-cases/mark-viewed.ts'
 import { createRegisterShare } from '#application/use-cases/register-share.ts'
 import { personId } from '#domain/person.ts'
@@ -11,6 +12,7 @@ import { samplePeople, sampleShares } from '#infrastructure/mock/sample-shares.t
 const links = createInMemoryLinkRepository()
 const importShares = createImportShares(createRegisterShare(links))
 const listPending = createListPending(links)
+const listResends = createListResends(links)
 const markViewed = createMarkViewed(links)
 const getLinkHistory = createGetLinkHistory(links)
 const source = createMockShareSource(sampleShares)
@@ -36,4 +38,13 @@ if (share) {
       views: Object.fromEntries(history.views),
     }, null, 2))
   }
+}
+
+console.log('Reenvios')
+for (const { share, original, seenAt } of listResends()) {
+  const status = seenAt ? `já visto em ${seenAt.toString()}` : 'ainda não visto'
+  console.log(
+    `  ${share.sentAt.toString()} · ${share.from} → ${share.to} · ${share.channel} · ${share.url}`,
+    `· original em ${original.sentAt.toString()} · ${status}`,
+  )
 }

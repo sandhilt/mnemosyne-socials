@@ -9,6 +9,7 @@ import type { LinkKey } from '#domain/link-key.ts'
  */
 export interface LinkRepository {
   find(key: LinkKey): Link | undefined
+  list(): readonly Link[]
   /** Replaces the whole aggregate. */
   save(link: Link): void
   /** Links with at least one share to `person`, each with its full history. */

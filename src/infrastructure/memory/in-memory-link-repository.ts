@@ -6,6 +6,7 @@ export function createInMemoryLinkRepository(): LinkRepository {
   const links = new Map<LinkKey, Link>()
   return {
     find: (key) => links.get(key),
+    list: () => [...links.values()],
     save: (link) => { links.set(link.key, link) },
     findSharedTo(person) {
       return [...links.values()].filter((link) =>

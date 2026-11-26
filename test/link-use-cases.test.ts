@@ -4,6 +4,7 @@ import type { ShareInput, ShareSource } from '#application/ports.ts'
 import { createGetLinkHistory } from '#application/use-cases/get-link-history.ts'
 import { createImportShares } from '#application/use-cases/import-shares.ts'
 import { createListPending } from '#application/use-cases/list-pending.ts'
+import { createListResends } from '#application/use-cases/list-resends.ts'
 import { createMarkViewed } from '#application/use-cases/mark-viewed.ts'
 import { createRegisterShare } from '#application/use-cases/register-share.ts'
 import { personId } from '#domain/person.ts'
@@ -32,6 +33,7 @@ function setup() {
     importShares: createImportShares(registerShare),
     markViewed: createMarkViewed(links),
     listPending: createListPending(links),
+    listResends: createListResends(links),
     getLinkHistory: createGetLinkHistory(links),
   }
 }
@@ -51,6 +53,28 @@ test('rejected shares leave pending and history empty', async () => {
   assert.deepEqual(listPending(sam), [])
   assert.deepEqual(listPending(alex), [])
   assert.equal(getLinkHistory(share.url), undefined)
+})
+
+test('resends from all links are listed oldest first', () => {
+  const { registerShare, listResends, markViewed } = setup()
+  const second = { ...share, url: 'https://example.com/two' }
+  const latest = { ...share, messageId: 'example-2', sentAt: later }
+  const middle = {
+    ...second, messageId: 'example-2',
+    sentAt: Temporal.Instant.from('2026-11-26T11:00:00Z'),
+  }
+
+  registerShare(latest)
+  registerShare(share)
+  registerShare(second)
+  registerShare(middle)
+  markViewed({ url: second.url, viewer: sam, at: sentAt })
+  registerShare({ ...share, url: 'https://example.com/three' })
+
+  assert.deepEqual(listResends(), [
+    { share: expectedShare(middle), original: expectedShare(second), seenAt: sentAt },
+    { share: expectedShare(latest), original: expectedShare(share), seenAt: undefined },
+  ])
 })
 
 test('registering a share with a blank person ID throws', () => {
