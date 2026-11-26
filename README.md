@@ -10,4 +10,4 @@ node --run check
 node --run start   # demonstração com dados de exemplo
 ```
 
-Contexto, arquitetura e convenções estão no [AGENTS.md](AGENTS.md).
+Contexto, arquitetura e convenções estão no [AGENTS.md](AGENTS.md). O comportamento do projeto está documentado em [docs/](docs/README.md).

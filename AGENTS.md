@@ -15,12 +15,13 @@ Estado atual: entidades e casos de uso funcionam sobre adapters de mentira (repo
 - **Link**: um conteúdo único, identificado por uma chave derivada da URL. Guarda os envios e as visualizações.
 - **Pessoa**: quem envia, recebe e vê. No código é o id `PersonId`.
 - **Envio** (`Share`): uma pessoa manda um link a outra, com data, canal e id da mensagem. O par canal e id da mensagem não se repete dentro de um link.
+- **Reenvio** (`Resend`): qualquer envio do mesmo link após o primeiro na ordem de data, canal e id da mensagem. Mostra se e quando quem recebeu viu o link, em qualquer momento.
 - **Visualização** (`View`): quando uma pessoa viu um link. Vale a mais antiga.
-- **Pendente**: link enviado a uma pessoa que ainda não o viu. Aparece uma vez, mesmo com vários envios.
+- **Pendente**: link enviado a uma pessoa que ainda não o viu. Aparece uma vez, mesmo com vários envios. Um reenvio não reabre a pendência de quem já viu o link.
 
 ### Casos de uso
 
-Um arquivo por caso de uso em `src/application/use-cases/`: `register-share`, `mark-viewed`, `list-pending`, `get-link-history` e `import-shares`. As portas estão em `src/application/ports.ts`.
+Um arquivo por caso de uso em `src/application/use-cases/`: `register-share`, `mark-viewed`, `list-pending`, `list-resends`, `get-link-history` e `import-shares`. As portas estão em `src/application/ports.ts`.
 
 ### Decisões em aberto
 
@@ -34,6 +35,7 @@ Pergunte antes de escolher.
 - O que fazer quando uma origem entrega um id de pessoa em branco. Hoje o erro interrompe a importação.
 - Se reações e comentários entram no escopo.
 - Como versionar o esquema do banco.
+- Se o mesmo vídeo publicado em URLs ou plataformas diferentes poderá ser marcado como possível repetição. Hoje esse caso não é detectado.
 
 ## Comandos
 
@@ -83,11 +85,16 @@ Padrões em uso:
 - **Aggregate**: `Link` reúne envios e visualizações. As funções devolvem um novo valor.
 - **Casos de uso**: funções-fábrica que recebem as portas, montam os valores do domínio a partir de dados simples e orquestram.
 - **Repository**: a porta `LinkRepository` fica em `application`. O adapter atual é em memória; o de SQLite vem depois.
+- **Dados derivados**: reenvios são calculados a partir dos envios. No SQLite serão uma view, não uma tabela copiada ([docs/reenvios.md](docs/reenvios.md)).
 - **Adapter**: `ShareSource` é a porta de entrada. Cada origem de links é um adapter. Hoje só existe o mock.
 - **Injeção de dependência**: por argumento de função ou construtor, montada em `main.ts`. Sem container.
 - **Chain of Responsibility**: as regras de identidade por plataforma em `src/domain/link-key.ts`. Vale a primeira que responder; para mudar a prioridade, mude a ordem.
 
 Valide dados externos na borda (CLI, ambiente, rede, banco). Dentro do sistema, confie nos tipos.
+
+## Documentação
+
+Documente em `docs/`, em português. Toda mudança de comportamento, regra de domínio ou decisão de projeto cria ou atualiza um arquivo ali, na mesma mudança do código. Um arquivo por assunto, listado em `docs/README.md`. O `AGENTS.md` guarda as instruções de trabalho; a explicação detalhada fica em `docs/`.
 
 ## Convenções de código
 
