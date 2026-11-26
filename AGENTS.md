@@ -32,27 +32,29 @@ Pergunte antes de escolher.
 ## Comandos
 
 ```sh
-nix develop            # opcional, entra num shell com Node 26
-npm install
-npm start
-npm run dev            # reinicia a cada mudança
-npm test
-npm run test:coverage  # cobertura ainda é experimental no Node
-npm run typecheck
-npm run check          # typecheck + testes, obrigatório antes de commit
+direnv allow           # uma vez: carrega Node 26 e Corepack pelo flake (ou: nix develop)
+corepack npm install
+node --run start
+node --run dev            # reinicia a cada mudança
+node --run test
+node --run test:coverage  # cobertura ainda é experimental no Node
+node --run typecheck
+node --run check          # typecheck + testes, obrigatório antes de commit
 ```
 
 ## Stack
 
 - Node no LTS mais atual. Hoje é o 26. O Node executa o TypeScript direto (type stripping), sem build.
+- Scripts rodam com `node --run <script>`, não com `npm run`. O `node --run` não executa scripts `pre` e `post`.
+- O npm só instala dependências, sempre pelo Corepack (`corepack npm install`), na versão fixada em `packageManager`.
 - ESM e ECMAScript moderno (`using`, `Temporal`, métodos novos da linguagem). Use `Temporal` para datas, não `Date`.
 - SQLite pelo módulo `node:sqlite`, que no Node 26 está em "release candidate".
 - Testes com `node:test` e `node:assert/strict`.
 - Biblioteca padrão primeiro. Não há dependência de runtime. As de desenvolvimento são `typescript` e `@types/node`. Uma dependência nova precisa de motivo: o que a std não faz.
 
-Configuração vem do ambiente. `npm start` e `npm run dev` carregam o `.env` se ele existir (modelo em `.env.example`). O `.npmrc` faz o `npm install` falhar em um Node antigo.
+Configuração vem do ambiente. `node --run start` e `node --run dev` carregam o `.env` se ele existir (modelo em `.env.example`). Com o direnv ativo, o Node certo já está no `PATH`. Fora dele, `engines` só gera um aviso na instalação e o `node --run` não confere a versão. O Node 26 não traz o Corepack: o `flake.nix` o fornece, compilado sobre o Node 26. Para atualizar o npm, rode `corepack use npm@<versão>`.
 
-Quando sair um novo LTS, atualize juntos `.node-version`, `engines` no `package.json`, `@types/node`, `flake.nix` (e `nix flake update`) e esta seção.
+Quando sair um novo LTS, atualize juntos `engines` no `package.json`, `@types/node`, `packageManager`, `flake.nix` (e `nix flake update`) e esta seção.
 
 ## Arquitetura
 
@@ -81,7 +83,7 @@ Valide dados externos na borda (CLI, ambiente, rede, banco). Dentro do sistema, 
 - Identificadores em inglês. Documentação em português.
 - Imports com extensão `.ts`. Entre camadas, use os aliases `#domain/`, `#application/` e `#infrastructure/`.
 - Só sintaxe TypeScript que pode ser apagada: nada de `enum`, `namespace` com valor, parameter properties ou decorators. Use `import type` para tipos.
-- O Node não verifica tipos. Quem verifica é o `npm run typecheck`.
+- O Node não verifica tipos. Quem verifica é o `node --run typecheck`.
 - Funções pequenas, nomes que dizem a intenção. Comentário só para um porquê que o código não mostra.
 - Lógica nova vem com teste ao lado do arquivo (`*.test.ts`). Teste comportamento observável, não implementação. Use banco `:memory:` ou diretório temporário.
 - SQL sempre com parâmetros (`prepare`), nunca por concatenação.
@@ -90,7 +92,7 @@ Valide dados externos na borda (CLI, ambiente, rede, banco). Dentro do sistema, 
 
 - Sem pull requests. O trabalho vai direto para a `main`.
 - Agentes fazem commit e push quando a pessoa pedir.
-- Rode `npm run check` antes. Não há CI, então essa é a única verificação.
+- Rode `node --run check` antes. Não há CI, então essa é a única verificação.
 - Commits em inglês, no formato Conventional Commits.
 - Nunca commite `.env`, bancos SQLite ou links reais trocados entre pessoas.
 - Não inclua link de sessão de ferramenta de IA no commit.
